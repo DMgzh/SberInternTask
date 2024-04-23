@@ -1,47 +1,63 @@
+<!-- App.svelte -->
+
 <script lang="ts">
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from '/vite.svg'
-  import Counter from './lib/Counter.svelte'
+  import { onMount } from 'svelte';
+
+  let currency1: string = '';
+  let currency2: string = '';
+  let amount: number = 0;
+  let exchangeRate: number = 0;
+  let result: number = 0;
+  let error: string = '';
+  let displayCurrency1: string = '';
+  let displayCurrency2: string = '';
+
+  async function convertCurrency() {
+    if (!currency1 || !currency2) {
+      error = 'Invalid ammount format'
+      return; 
+    }
+
+    const response = await fetch(`https://open.er-api.com/v6/latest/${currency1}`);
+    const data = await response.json();
+
+    if (data.result === "success") {
+      exchangeRate = data.rates[currency2] || 0;
+      result = amount * exchangeRate;
+      error = '';
+      displayCurrency1 = currency1;
+      displayCurrency2 = currency2;
+    } else {
+      error = 'Invalid currency pair';
+    }
+  }
+
+  function handleAmountInput(event) {
+    amount = parseFloat(event.target.value);
+    convertCurrency();
+  }
+
+  function handleSubmit() {
+    convertCurrency();
+  }
+
+  onMount(() => {
+    console.log("mounted");
+  });
 </script>
 
-<main>
-  <div>
-    <a href="https://vitejs.dev" target="_blank" rel="noreferrer">
-      <img src={viteLogo} class="logo" alt="Vite Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank" rel="noreferrer">
-      <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-    </a>
-  </div>
-  <h1>Vite + Svelte</h1>
-
-  <div class="card">
-    <Counter />
-  </div>
-
-  <p>
-    Check out <a href="https://github.com/sveltejs/kit#readme" target="_blank" rel="noreferrer">SvelteKit</a>, the official Svelte app framework powered by Vite!
-  </p>
-
-  <p class="read-the-docs">
-    Click on the Vite and Svelte logos to learn more
-  </p>
-</main>
-
-<style>
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: filter 300ms;
-  }
-  .logo:hover {
-    filter: drop-shadow(0 0 2em #646cffaa);
-  }
-  .logo.svelte:hover {
-    filter: drop-shadow(0 0 2em #ff3e00aa);
-  }
-  .read-the-docs {
-    color: #888;
-  }
-</style>
+<h1>Currency Converter</h1>
+<label for="currency1">First Currency (3-letter code):</label>
+<input type="text" bind:value={currency1}>
+<label for="currency2">Second Currency (3-letter code):</label>
+<input type="text" bind:value={currency2}>
+<button on:click={handleSubmit}>Submit</button>
+<label for="amount">Amount:</label>
+<input type="number" bind:value={amount} on:input={handleAmountInput}>
+<div>
+  {#if error}
+    {error}
+  {:else if exchangeRate}
+    {amount} {displayCurrency1} equals {result.toFixed(2)} {displayCurrency2}
+  {/if}
+</div>
